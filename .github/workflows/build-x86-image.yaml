@@ -4,10 +4,11 @@ on:
     branches:
       - master
       - release-*
+      - ecx-develop
 env:
   KIND_VERSION: v0.11.1
   REGISTRY: etcdnecx
-  RELEASE_TAG: ecx-v1.8.5
+  RELEASE_TAG: ecx-develop
 
 jobs:
   build:
@@ -71,7 +72,7 @@ jobs:
           docker load --input kube-ovn.tar
 
       - name: Push
-        if: ${{ contains(github.ref, 'release') }}
+        if: ${{ contains(github.ref, 'release') || contains(github.ref, 'ecx-develop') }}
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
