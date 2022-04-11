@@ -7,7 +7,7 @@ on:
 env:
   KIND_VERSION: v0.11.1
   REGISTRY: etcdnecx
-  RELEASE_TAG: ecx-v1.8.7
+  RELEASE_TAG: ecx-v1.9.0
 
 jobs:
   build:
