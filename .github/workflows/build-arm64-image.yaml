@@ -9,7 +9,7 @@ on:
     - '**.md'
 env:
   REGISTRY: etcdnecx
-  RELEASE_TAG: ecx-v1.8.8
+  RELEASE_TAG: ecx-v1.8.8-fix
   GO_VERSION: '1.17.5'
 
 jobs:
