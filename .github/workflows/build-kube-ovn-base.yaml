@@ -71,7 +71,7 @@ jobs:
           TAG=$(cat VERSION)
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
           docker images
-          docker push etcdnecx/ovs-base:$TAG-amd64
+          docker push etcdnecx/ovs-base:$TAG-arm64
 
   push:
     needs:
