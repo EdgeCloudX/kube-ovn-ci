@@ -5,61 +5,48 @@ ARG ARCH
 ARG DEBIAN_FRONTEND=noninteractive
 ENV SRC_DIR='/usr/src'
 
-RUN apt update && apt install build-essential git libnuma-dev autoconf curl \
-    python3 libmnl-dev libpcap-dev libtool libcap-ng-dev libssl-dev pkg-config \
-    python3-six libunbound-dev libunwind-dev dh-make fakeroot debhelper dh-python \
-    flake8 python3-sphinx graphviz groff wget libjemalloc-dev -y
+RUN apt update && apt install -y git curl
 
-RUN cd /usr/src/ && \
-    git clone -b ecx-2.14.4-advance --depth=1 https://github.com/EdgeCloudX/ovs.git && \
-    cd ovs && \
+RUN cd /usr/src/ && git clone -b branch-3.2 --depth=1 https://github.com/openvswitch/ovs.git
+
+RUN cd /usr/src/ && git clone -b branch-23.09 --depth=1 https://github.com/ovn-org/ovn.git
+
+RUN apt install -y build-essential fakeroot \
+    autoconf automake bzip2 debhelper-compat dh-exec dh-python dh-sequence-python3 dh-sequence-sphinxdoc \
+    graphviz iproute2 libcap-ng-dev libdbus-1-dev libnuma-dev libpcap-dev libssl-dev libtool libunbound-dev \
+    openssl pkg-config procps python3-all-dev python3-setuptools python3-sortedcontainers python3-sphinx
+
+RUN cd /usr/src/ovs && \
     ./boot.sh && \
+    ./configure && \
     rm -rf .git && \
-    CONFIGURE_OPTS='LIBS=-ljemalloc' && \
-    if [ "$ARCH" = "amd64" ]; then CONFIGURE_OPTS='LIBS=-ljemalloc CFLAGS="-O2 -g -msse4.2 -mpopcnt"'; fi && \
-    DATAPATH_CONFIGURE_OPTS='--prefix=/usr --enable-shared' EXTRA_CONFIGURE_OPTS=$CONFIGURE_OPTS DEB_BUILD_OPTIONS='parallel=8 nocheck' fakeroot debian/rules binary
+    CONFIGURE_OPTS='CFLAGS="-fPIC"' && \
+    if [ "$ARCH" = "amd64" ]; then CONFIGURE_OPTS='CFLAGS="-O2 -g -msse4.2 -mpopcnt -fPIC"'; fi && \
+    DATAPATH_CONFIGURE_OPTS='--prefix=/usr' EXTRA_CONFIGURE_OPTS=$CONFIGURE_OPTS make debian-deb
 
-RUN dpkg -i /usr/src/python3-openvswitch*.deb /usr/src/libopenvswitch*.deb
-
-RUN cd /usr/src/ && git clone -b ecx-20.06.3 --depth=1 https://github.com/EdgeCloudX/ovn.git && \
-    cd ovn && \
+RUN cd /usr/src/ovn && \
     sed -i 's/OVN/ovn/g' debian/changelog && \
     rm -rf .git && \
     ./boot.sh && \
-    truncate  -s 0  debian/openvswitch-*.install && \
-    truncate  -s 0  debian/libopenvswitch*.install && \
-    truncate  -s 0  debian/python-*.install  && \
-    sed -i 's/openvswitch/ovn/g' debian/ovn-*.install  && \
-    sed -i '54d' debian/rules  && \
-    sed -i '65,90d' debian/rules  && \
-    truncate  -s 0 debian/*.manpages && \
-    sed -i '1i/usr\/bin\/ovn-appctl' debian/ovn-common.install && \
-    sed -i '1i/utilities\/ovn-appctl.8' debian/ovn-common.manpages && \
-    sed -i 's/--dbg-package=openvswitch-dbg//g' debian/rules && \
-    CONFIGURE_OPTS='LIBS=-ljemalloc' && \
-    if [ "$ARCH" = "amd64" ]; then CONFIGURE_OPTS='LIBS=-ljemalloc CFLAGS="-O2 -g -msse4.2 -mpopcnt"'; fi && \
-    OVSDIR=/usr/src/ovs DATAPATH_CONFIGURE_OPTS='--prefix=/usr --with-ovs-source=/usr/src/ovs' EXTRA_CONFIGURE_OPTS=$CONFIGURE_OPTS DEB_BUILD_OPTIONS='parallel=8 nocheck' fakeroot debian/rules binary
+    CONFIGURE_OPTS='--with-ovs-build=/usr/src/ovs/_debian CFLAGS="-fPIC"' && \
+    if [ "$ARCH" = "amd64" ]; then CONFIGURE_OPTS="--with-ovs-build=/usr/src/ovs/_debian CFLAGS='-O2 -g -msse4.2 -mpopcnt -fPIC'"; fi && \
+    OVSDIR=/usr/src/ovs EXTRA_CONFIGURE_OPTS=$CONFIGURE_OPTS DEB_BUILD_OPTIONS='parallel=8 nocheck' fakeroot debian/rules binary
 
 RUN mkdir /packages/ && \
-     cp /usr/src/ovn/ovn-ic-*.ovsschema /packages && \
-     cp /usr/src/ovn/utilities/ovn-lib /packages && \
-     cp /usr/src/libopenvswitch*.deb /packages && \
-     cp /usr/src/openvswitch-*.deb /packages && \
-     cp /usr/src/python3-openvswitch*.deb /packages && \
-     cp /usr/src/ovn-*.deb /packages && \
-     cd /packages && rm -f *dbg* *datapath* *docker* *vtep* *ipsec* *test* *dev*
+    cp /usr/src/openvswitch-*deb /packages && \
+    cp /usr/src/python3-openvswitch*deb /packages && \
+    cp /usr/src/ovn-*deb /packages && \
+    cd /packages && rm -f *source* *doc* *datapath* *docker* *vtep* *test* *dev*
 
 FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt upgrade -y && apt install ca-certificates python3 hostname libunwind8 netbase \
-        ethtool iproute2 ncat libunbound-dev procps libatomic1 kmod iptables \
-        tcpdump ipset curl uuid-runtime openssl inetutils-ping arping ndisc6 \
-        logrotate libjemalloc2 dnsutils -y --no-install-recommends && \
+        ethtool iproute2 ncat libunbound-dev procps libatomic1 kmod iptables python3-netifaces python3-sortedcontainers \
+        tcpdump ipset curl uuid-runtime openssl inetutils-ping arping ndisc6 conntrack iputils-tracepath \
+        logrotate dnsutils net-tools strongswan strongswan-pki libcharon-extra-plugins libmnl0 \
+        libcharon-extauth-plugins libstrongswan-extra-plugins libstrongswan-standard-plugins -y --no-install-recommends && \
         rm -rf /var/lib/apt/lists/* && \
-        cd /usr/sbin && \
-        ln -sf /usr/sbin/iptables-legacy iptables && \
-        ln -sf /usr/sbin/ip6tables-legacy ip6tables && \
         rm -rf /etc/localtime
 
 RUN mkdir -p /var/run/openvswitch && \
@@ -67,14 +54,15 @@ RUN mkdir -p /var/run/openvswitch && \
     mkdir -p /etc/cni/net.d && \
     mkdir -p /opt/cni/bin
 
-ARG ARCH
-ENV CNI_VERSION=v1.0.1
-RUN curl -sSf -L --retry 5 https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-linux-${ARCH}-${CNI_VERSION}.tgz | tar -xz -C . ./loopback ./portmap ./macvlan
-
 RUN --mount=type=bind,target=/packages,from=ovs-builder,source=/packages  \
-    dpkg -i /packages/libopenvswitch*.deb && \
-    dpkg -i /packages/openvswitch-*.deb && \
-    dpkg -i /packages/python3-openvswitch*.deb &&\
+    dpkg -i /packages/openvswitch-*.deb /packages/python3-openvswitch*.deb && \
     dpkg -i --ignore-depends=openvswitch-switch,openvswitch-common /packages/ovn-*.deb && \
-    cp /packages/ovn-ic-*.ovsschema /usr/share/ovn/ &&\
-    cp /packages/ovn-lib /usr/share/ovn/scripts/
+    rm -rf /var/lib/openvswitch/pki/
+
+ARG DEBUG=false
+RUN --mount=type=bind,target=/packages,from=ovs-builder,source=/packages \
+    if [ "${DEBUG}" = "true" ]; then \
+        apt update && apt install -y --no-install-recommends gdb valgrind && \
+        rm -rf /var/lib/apt/lists/* && \
+        dpkg -i --ignore-depends=openvswitch-switch,openvswitch-common /packages/*.ddeb; \
+    fi
