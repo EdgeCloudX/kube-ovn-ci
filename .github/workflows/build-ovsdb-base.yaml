@@ -1,4 +1,4 @@
-name: Build ovsdb Base
+name: Build Base
 on: workflow_dispatch
 
 jobs:
