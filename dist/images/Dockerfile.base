@@ -21,7 +21,7 @@ RUN cd /usr/src/ && \
 
 RUN dpkg -i /usr/src/python3-openvswitch*.deb /usr/src/libopenvswitch*.deb
 
-RUN cd /usr/src/ && git clone -b frm --depth=1 https://github.com/EdgeCloudX/ovn.git && \
+RUN cd /usr/src/ && git clone -b ecx-base-develop --depth=1 https://github.com/EdgeCloudX/ovn.git && \
     cd ovn && \
     sed -i 's/OVN/ovn/g' debian/changelog && \
     rm -rf .git && \
