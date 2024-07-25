@@ -32,8 +32,7 @@ RUN cd /usr/src/ && \
     cd ovs && \
     ./boot.sh && \
     rm -rf .git && \
-    export LIBS=-ljemalloc && \
-    if [ "$ARCH" = "amd64" ]; then export LIBS=-ljemalloc; export CFLAGS="-O2 -g -msse4.2 -mpopcnt"; fi && \
+    if [ "$ARCH" = "amd64" ]; then export CFLAGS="-O2 -g -msse4.2 -mpopcnt"; fi && \
     ./configure --prefix=/usr && \
     make -j 8
 
@@ -42,8 +41,7 @@ RUN cd /usr/src/ && git clone -b ecx-develop --depth=1 https://github.com/EdgeCl
     cd ovn && \
     rm -rf .git && \
     ./boot.sh && \
-    export LIBS=-ljemalloc && \
-    if [ "$ARCH" = "amd64" ]; then export LIBS=-ljemalloc; export CFLAGS="-O2 -g -msse4.2 -mpopcnt"; fi && \
+    if [ "$ARCH" = "amd64" ]; then export CFLAGS="-O2 -g -msse4.2 -mpopcnt"; fi && \
     ./configure $CONFIGURE_OPTS --prefix=/usr --with-ovs-source=/usr/src/ovs && \
     make -j 8
 
