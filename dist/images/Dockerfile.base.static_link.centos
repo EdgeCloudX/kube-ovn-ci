@@ -37,7 +37,7 @@ RUN cd /usr/src/ && \
     make -j 8
 
 
-RUN cd /usr/src/ && git clone -b ecx-develop --depth=1 https://github.com/EdgeCloudX/ovn.git && \
+RUN cd /usr/src/ && git clone -b ecx-20.06.3 --depth=1 https://github.com/EdgeCloudX/ovn.git && \
     cd ovn && \
     rm -rf .git && \
     ./boot.sh && \
