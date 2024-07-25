@@ -1,0 +1,47 @@
+# syntax = docker/dockerfile:experimental
+FROM centos:8
+
+ARG ARCH
+ARG DEBIAN_FRONTEND=noninteractive
+ENV SRC_DIR='/usr/src'
+
+RUN cd /etc/yum.repos.d/ && \
+    sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+
+RUN yum install dnf-plugins-core -y && \
+    yum config-manager --set-enabled powertools && \
+    yum install python36 git wget openssl-devel gcc \
+    make python3-devel openssl-devel kernel-devel kernel-debug-devel \
+    autoconf automake rpm-build redhat-rpm-config libtool libcap-ng-devel \
+    checkpolicy selinux-policy-devel unbound unbound-devel gcc-c++ \
+    desktop-file-utils graphviz groff python3-sphinx -y
+
+RUN cd /usr/src/ && \
+    wget https://github.com/jemalloc/jemalloc/archive/5.2.1.tar.gz && \
+    tar -zxvf 5.2.1.tar.gz && \
+    cd jemalloc-5.2.1 && \
+    ./autogen.sh && \
+    make dist && \
+    make && make install && \
+    echo "/usr/local/lib" > /etc/ld.so.conf.d/other.conf && \
+    /sbin/ldconfig
+
+RUN cd /usr/src/ && \
+    git clone -b ecx-2.14.4-advance --depth=1 https://github.com/EdgeCloudX/ovs.git && \
+    cd ovs && \
+    ./boot.sh && \
+    rm -rf .git && \
+    if [ "$ARCH" = "amd64" ]; then export CFLAGS="-O2 -g -msse4.2 -mpopcnt"; fi && \
+    ./configure --prefix=/usr && \
+    make -j 8
+
+
+RUN cd /usr/src/ && git clone -b ecx-20.06.3 --depth=1 https://github.com/EdgeCloudX/ovn.git && \
+    cd ovn && \
+    rm -rf .git && \
+    ./boot.sh && \
+    if [ "$ARCH" = "amd64" ]; then export CFLAGS="-O2 -g -msse4.2 -mpopcnt"; fi && \
+    ./configure $CONFIGURE_OPTS --prefix=/usr --with-ovs-source=/usr/src/ovs && \
+    make -j 8
+
