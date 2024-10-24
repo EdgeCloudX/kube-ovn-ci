@@ -18,7 +18,7 @@ jobs:
           make base-static-tar-centos-amd64
 
       - name: Upload image to artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: image-static-amd64
           path: image-static-amd64.tar
@@ -45,7 +45,7 @@ jobs:
           make base-static-tar-centos-arm64
 
       - name: Upload image to artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: image-static-arm64
           path: image-static-arm64.tar
